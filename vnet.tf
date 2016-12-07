@@ -227,7 +227,7 @@ resource "azurerm_virtual_machine_extension" "nat_ext" {
   settings = <<EOF
 {
   "fileUris": [
-    "https://gist.githubusercontent.com/andypowe11/5e5ef231499575082823e5172ddc3a5c/raw/cf2fb40ea45b0b9d99e1e51dc2544fa3ee158139/configure_ip_forwarding.sh"
+    "https://raw.githubusercontent.com/andypowe11/Azure-Terraform-Basic-VNet/master/configure_ip_forwarding.sh"
   ],
   "commandToExecute": "bash configure_ip_forwarding.sh"
 }
