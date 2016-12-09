@@ -56,5 +56,5 @@ variable "private_key_path" {
 
 # Update this to create a new storage account
 variable "storage_account_version" {
-  default = "1"
+  default = "0"
 }
