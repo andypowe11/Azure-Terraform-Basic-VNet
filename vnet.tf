@@ -37,20 +37,21 @@ resource "azurerm_subnet" "pubsub" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# NAT box
-# Security groups
+# Public subnet security groups
 resource "azurerm_network_security_group" "nat_sg_public_ssh" {
   name = "${var.customer}-nat-sg-public-ssh"
   location = "${var.region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
+
+# Private subnets security group
 resource "azurerm_network_security_group" "nat_sg_private_ssh" {
   name = "${var.customer}-nat-sg-private-ssh"
   location = "${var.region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# SSH access to public VMs from Eduserv
+# Security group rule to all SSH access to public VMs from Eduserv
 resource "azurerm_network_security_rule" "nat_nsr_public_ssh_eduserv" {
   name = "${var.customer}-nat-sg-ssh-eduserv-access-rule"
   network_security_group_name = "${azurerm_network_security_group.nat_sg_public_ssh.name}"
@@ -65,7 +66,7 @@ resource "azurerm_network_security_rule" "nat_nsr_public_ssh_eduserv" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# SSH access to public VMs from APHome
+# Security group rule to all SSH access to public VMs from APHome
 resource "azurerm_network_security_rule" "nat_nsr_public_ssh_aphome" {
   name = "${var.customer}-nat-sg-ssh-aphome-access-rule"
   network_security_group_name = "${azurerm_network_security_group.nat_sg_public_ssh.name}"
@@ -80,7 +81,7 @@ resource "azurerm_network_security_rule" "nat_nsr_public_ssh_aphome" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# SSH access to private VMs from public VMs
+# Security group rule to all SSH access to private VMs from public VMs
 resource "azurerm_network_security_rule" "nat_nsr_private_ssh_access" {
   count = "${var.prisub_count}"
   name = "${var.customer}-nat-sg-private_ssh-access-rule"
@@ -96,7 +97,7 @@ resource "azurerm_network_security_rule" "nat_nsr_private_ssh_access" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Public IP address
+# NAT VM public IP address
 resource "azurerm_public_ip" "nat_ip" {
   name = "${var.customer}-nat-public-ip"
   location = "${var.region}"
@@ -104,7 +105,7 @@ resource "azurerm_public_ip" "nat_ip" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Network interface
+# NAT VM network interface
 resource "azurerm_network_interface" "nat_ni" {
   name = "${var.customer}-nat-ni"
   location = "${var.region}"
@@ -118,7 +119,7 @@ resource "azurerm_network_interface" "nat_ni" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Random Id
+# Random Id for the storage account - SA names must be globally unique
 resource "random_id" "nat_sa_id" {
   byte_length = 4
   keepers = {
@@ -127,7 +128,7 @@ resource "random_id" "nat_sa_id" {
   }
 }
 
-# Storage account
+# NAT VM storage account
 resource "azurerm_storage_account" "nat_sa" {
   name = "natsa${random_id.nat_sa_id.hex}v${var.storage_account_version}"
   location = "${var.region}"
@@ -135,7 +136,7 @@ resource "azurerm_storage_account" "nat_sa" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Storage container
+# NAT VM storage container
 resource "azurerm_storage_container" "nat_sc" {
   name = "${var.customer}-nat-sc"
   storage_account_name = "${azurerm_storage_account.nat_sa.name}"
@@ -170,13 +171,6 @@ resource "azurerm_virtual_machine" "nat" {
     caching = "ReadWrite"
     create_option = "FromImage"
   }
-#  storage_data_disk {
-#    name = "${var.customer}-nat-data-disk"
-#    vhd_uri = "${azurerm_storage_account.nat_sa.primary_blob_endpoint}${azurerm_storage_container.nat_sc.name}/nat-data-disk.vhd"
-#    disk_size_gb = "20"
-#    create_option = "empty"
-#    lun = 0
-#  }
   os_profile {
     computer_name = "${var.customer}-nat"
     admin_username = "ubuntu"
@@ -223,11 +217,10 @@ resource "azurerm_virtual_machine_extension" "nat_ext" {
   publisher = "Microsoft.OSTCExtensions"
   type = "CustomScriptForLinux"
   type_handler_version = "1.2"
-#  "commandToExecute": "echo net.ipv4.ip_forward=1 >> /etc/sysctl.conf && sysctl -w net.ipv4.ip_forward=1 && touch /tmp/ipforwarding"
   settings = <<EOF
 {
   "fileUris": [
-    "https://raw.githubusercontent.com/andypowe11/Azure-Terraform-Basic-VNet/master/configure_ip_forwarding.sh"
+    "https://raw.githubusercontent.com/andypowe11/Azure-Terraform-Basic-VNet/master/extras/configure_ip_forwarding.sh"
   ],
   "commandToExecute": "bash configure_ip_forwarding.sh"
 }

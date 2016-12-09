@@ -27,7 +27,7 @@ resource "azurerm_lb_probe" "web_probe" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Load balancer web access rule
+# Load balancer web server access rule
 resource "azurerm_lb_rule" "web_access" {
   name = "${var.customer}-web-access"
   location = "${var.region}"
@@ -51,31 +51,24 @@ resource "azurerm_lb_backend_address_pool" "lb_bap" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Web network security group
+# Web server network security group
 resource "azurerm_network_security_group" "web_sg" {
   name = "${var.customer}-web-sg"
   location = "${var.region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# HTTP access to private VMs from public subnet
+# Network security group rule to allow HTTP access the web server
 resource "azurerm_network_security_rule" "web_nsr_web_rule" {
-#  count = "${var.prisub_count}"
-#  name = "${var.customer}-web-sg-web-rule-${count.index}"
   name = "${var.customer}-web-sg-web-rule"
   network_security_group_name = "${azurerm_network_security_group.web_sg.name}"
   direction = "Inbound"
   access = "Allow"
-#  priority = "${count.index + 200}"
   priority = 200
-#  source_address_prefix = "${var.pubsub_cidr}"
-#  source_address_prefix = "AzureLoadBalancer"
   source_address_prefix = "*"
   source_port_range = "*"
-#  destination_address_prefix = "${lookup(var.prisub_cidrs, count.index)}"
   destination_address_prefix = "*"
   destination_port_range = "*"
-#  protocol = "Tcp"
   protocol = "*"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
@@ -90,12 +83,11 @@ resource "azurerm_network_interface" "web_ni" {
     subnet_id = "${azurerm_subnet.prisub.0.id}"
     private_ip_address_allocation = "dynamic"
     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.lb_bap.id}"]
-#    load_balancer_inbound_nat_rules_ids = ["${azurerm_lb_nat_rule.web_access.id}"]
   }
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Web VM
+# Web server VM
 resource "azurerm_virtual_machine" "web" {
   name = "${var.customer}-web"
   location = "${var.region}"
@@ -133,7 +125,7 @@ resource "azurerm_virtual_machine" "web" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# VM extension to set up the NAT server
+# VM extension to install nginx on the web server
 resource "azurerm_virtual_machine_extension" "web_ext" {
   name = "${var.customer}-web-ext"
   location = "${var.region}"
@@ -145,7 +137,7 @@ resource "azurerm_virtual_machine_extension" "web_ext" {
   settings = <<EOF
 {
   "fileUris": [
-    "https://raw.githubusercontent.com/andypowe11/Azure-Terraform-Basic-VNet/master/install-web.sh"
+    "https://raw.githubusercontent.com/andypowe11/Azure-Terraform-Basic-VNet/master/extras/install-web.sh"
   ],
   "commandToExecute": "bash install-web.sh"
 }
