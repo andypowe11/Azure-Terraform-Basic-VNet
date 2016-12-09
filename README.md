@@ -12,3 +12,6 @@ Deploy with:
 Delete everything with:
 
     terraform destroy
+
+Add the files in 'extras' to deploy a single Ubuntu web server running NginX into the first private subnet and a
+load-balancer to provide access to it.
